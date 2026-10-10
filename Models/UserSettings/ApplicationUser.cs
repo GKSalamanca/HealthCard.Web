@@ -13,6 +13,8 @@ namespace Models.UserSettings
         public  Gender? Gender { get; private set; } // Пол пользователя
         public string? BloodeType { get; private set; } //Группа крови
         public DateTime CreatedAt { get; private set; } = DateTime.UtcNow; // Дата регистрации пользователя
+        
+
 
 
         /*
@@ -21,6 +23,8 @@ namespace Models.UserSettings
         */
         public virtual ICollection<MedicalRecord> MedicalRecords { get; private set; } = new List<MedicalRecord>();
         public virtual ICollection<UserParameterNorm> UserParameterNorms { get; private set; } = new List<UserParameterNorm>();
+        //Навигационное свойство для пользовательских категорий                                                                  
+        public virtual ICollection<Category> UserCategories { get; private set; } = new List<Category>();
 
         //Пустой конструктор  для EF (когда читает данные из базы вызывает создает объект через этот конструктор)
         // EF Core сам заполнит все свойства через рефлексию***
