@@ -1,0 +1,159 @@
+﻿@model HealthCard.Web.ViewModels.RecordCreateViewModel
+@{
+    ViewData["Title"] = "Добавить запись";
+}
+
+<div class="row">
+    <div class="col-12">
+        <h2><i class="bi bi-plus-circle"></i> Добавить запись</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form asp-action="Create" method="post" enctype="multipart/form-data">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="CategoryId" class="form-label"></label>
+                        <select asp-for="CategoryId" asp-items="@(new SelectList(Model.Categories, "Id", "Name"))" 
+                                class="form-select" onchange="this.form.submit()">
+                            <option value="">-- Выберите категорию --</option>
+                        </select>
+                        <span asp-validation-for="CategoryId" class="text-danger"></span>
+                    </div>
+
+                    @if (Model.Categories.Any(c => c.Id == Model.CategoryId))
+                    {
+                        <div class="mb-3">
+                            <label asp-for="RecordDate" class="form-label"></label>
+                            <input asp-for="RecordDate" class="form-control" type="date" />
+                            <span asp-validation-for="RecordDate" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Title" class="form-label"></label>
+                            <input asp-for="Title" class="form-control" placeholder="Например: ОАК в Инвитро" />
+                            <span asp-validation-for="Title" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Comment" class="form-label"></label>
+                            <textarea asp-for="Comment" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Comment" class="text-danger"></span>
+                        </div>
+
+                        @if (Model.IsLabTest && Model.Parameters.Any())
+                        {
+                            <div class="mb-3">
+                                <h5>Результаты анализа</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Параметр</th>
+                                                <th>Норма</th>
+                                                <th>Ед. изм.</th>
+                                                <th>Ваш результат</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @for (var i = 0; i < Model.Parameters.Count; i++)
+                                            {
+                                                <tr>
+                                                    <td>@Model.Parameters[i].ParameterName</td>
+                                                    <td>@Model.Parameters[i].NormMin – @Model.Parameters[i].NormMax</td>
+                                                    <td>@Model.Parameters[i].Unit</td>
+                                                    <td>
+                                                        <input type="hidden" asp-for="@Model.Parameters[i].TestParameterId" />
+                                                        <input type="hidden" asp-for="@Model.Parameters[i].ParameterName" />
+                                                        <input type="hidden" asp-for="@Model.Parameters[i].Unit" />
+                                                        <input type="hidden" asp-for="@Model.Parameters[i].NormMin" />
+                                                        <input type="hidden" asp-for="@Model.Parameters[i].NormMax" />
+                                                        <input type="number" step="0.01" asp-for="@Model.Parameters[i].Value" 
+                                                               class="form-control form-control-sm" />
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        }
+
+                        <div class="mb-3">
+                            <label asp-for="File" class="form-label"></label>
+                            <input asp-for="File" class="form-control" accept=".pdf,.jpg,.jpeg,.png" />
+                            <span asp-validation-for="File" class="text-danger"></span>
+                            <small class="text-muted">Максимальный размер: 10 МБ</small>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="bi bi-x-lg"></i> Отмена
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Сохранить
+                            </button>
+                        </div>
+                    }
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Подсказка</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">1. Выберите категорию анализа</p>
+                <p class="mb-2">2. Заполните дату и заголовок</p>
+                <p class="mb-2">3. Введите результаты (если это лабораторный анализ)</p>
+                <p class="mb-0">4. Прикрепите файл с бланком (опционально)</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        // При изменении категории перезагружаем форму с выбранной категорией
+        document.querySelector('select[name="CategoryId"]').addEventListener('change', function() {
+            const categoryId = this.value;
+            if (categoryId) {
+                // Сохраняем другие поля
+                const recordDate = document.querySelector('input[name="RecordDate"]').value;
+                const title = document.querySelector('input[name="Title"]').value;
+                const comment = document.querySelector('textarea[name="Comment"]').value;
+                
+                // Создаем форму для отправки
+                const form = document.createElement('form');
+                form.method = 'GET';
+                form.action = '@Url.Action("Create", "MedicalRecord")';
+                
+                // Добавляем параметры
+                form.appendChild(createHiddenInput('categoryId', categoryId));
+                form.appendChild(createHiddenInput('RecordDate', recordDate));
+                form.appendChild(createHiddenInput('Title', title));
+                form.appendChild(createHiddenInput('Comment', comment));
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+        
+        function createHiddenInput(name, value) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.value = value;
+            return input;
+        }
+    </script>
+}
