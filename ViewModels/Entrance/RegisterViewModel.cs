@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace HealthCard.Web.ViewModels;
+namespace ViewModels.Entrance;
 
 public class RegisterViewModel
 {

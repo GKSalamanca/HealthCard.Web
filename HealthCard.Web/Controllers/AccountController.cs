@@ -1,7 +1,7 @@
 ﻿using Models.UserSettings;
-using HealthCard.Web.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using ViewModels.Entrance;
 
 namespace HealthCard.Web.Controllers;
 
