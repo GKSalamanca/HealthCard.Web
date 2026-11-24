@@ -1,0 +1,136 @@
+﻿@model HealthCard.Web.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = "Главная";
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <h2><i class="bi bi-heart-pulse-fill text-danger"></i> Добро пожаловать, @Model.UserName!</h2>
+        <p class="text-muted">Ваша персональная карточка здоровья</p>
+    </div>
+</div>
+
+<!-- Карточки со статистикой -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-primary shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Всего записей</h5>
+                <p class="card-text display-6">@Model.TotalRecordsCount</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-success shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Доступно анализов</h5>
+                <p class="card-text display-6">@Model.Categories.Count</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-info shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Статус</h5>
+                <p class="card-text fs-4">Система активна</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Категории -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h4 class="mb-4"><i class="bi bi-folder2-open"></i> Категории</h4>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Папка 1: Лабораторные анализы -->
+    <div class="col-md-6">
+        <a asp-controller="Category" asp-action="GroupDetails" asp-route-type="LabTest"
+           class="text-decoration-none">
+            <div class="card border-0 shadow-sm h-100 category-folder" style="min-height: 280px;">
+                <div class="card-body p-4 d-flex flex-column justify-content-center text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-clipboard2-pulse-fill text-primary" style="font-size: 5rem;"></i>
+                    </div>
+                    <h3 class="mb-2">Лабораторные анализы</h3>
+                    <p class="text-muted mb-3">
+                        @Model.CategoryStatistics.Count(c => c.IsLabTest) категорий
+                    </p>
+                    <div>
+                        <span class="badge bg-primary">
+                            <i class="bi bi-droplet-fill"></i> Анализы крови, мочи и др.
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Папка 2: Исследования и заключения -->
+    <div class="col-md-6">
+        <a asp-controller="Category" asp-action="GroupDetails" asp-route-type="Research"
+           class="text-decoration-none">
+            <div class="card border-0 shadow-sm h-100 category-folder" style="min-height: 280px;">
+                <div class="card-body p-4 d-flex flex-column justify-content-center text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-clipboard2-heart-fill text-success" style="font-size: 5rem;"></i>
+                    </div>
+                    <h3 class="mb-2">Исследования и заключения</h3>
+                    <p class="text-muted mb-3">
+                        @Model.CategoryStatistics.Count(c => !c.IsLabTest) категорий
+                    </p>
+                    <div>
+                        <span class="badge bg-success">
+                            <i class="bi bi-file-medical"></i> УЗИ, МРТ, ЭКГ, заключения
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+<!-- Последние записи -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Последние записи</h5>
+                <a asp-controller="MedicalRecord" asp-action="Create" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-plus-lg"></i> Добавить запись
+                </a>
+            </div>
+            <div class="card-body">
+                @if (Model.RecentRecords.Any())
+                {
+                    <ul class="list-unstyled mb-0">
+                        @foreach (var record in Model.RecentRecords)
+                        {
+                            <li class="mb-3 pb-3 border-bottom">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>@record.Title</strong>
+                                        <br>
+                                        <small class="text-muted">@record.Category.Name</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <small class="text-muted d-block">@record.RecordDate.ToString("dd.MM.yyyy")</small>
+                                        <a asp-controller="MedicalRecord" asp-action="Details" asp-route-id="@record.Id" class="btn btn-sm btn-outline-primary mt-1">
+                                            <i class="bi bi-eye"></i> Подробнее
+                                        </a>
+                                    </div>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="text-muted text-center mb-0">У вас пока нет записей.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>

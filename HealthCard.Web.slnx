@@ -1,3 +1,8 @@
 <Solution>
+  <Project Path="Data/Data.csproj" />
   <Project Path="HealthCard.Web/HealthCard.Web.csproj" />
+  <Project Path="Models/Models.csproj" />
+  <Project Path="Services/Services.csproj" />
+  <Project Path="ViewModels/ViewModels.csproj" />
+  <Project Path="wwwroot/wwwroot.csproj" />
 </Solution>

@@ -1,0 +1,36 @@
+﻿/* Стили для больших квадратных папок на главной */
+.category-folder {
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 2px solid transparent !important;
+}
+
+    .category-folder:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.2) !important;
+    }
+
+    /* Синяя папка для анализов */
+    .category-folder:hover {
+        border-color: #0d6efd !important;
+    }
+
+        .category-folder:hover h3 {
+            color: #0d6efd;
+        }
+
+    .category-folder h3 {
+        color: #212529;
+        font-weight: 600;
+        transition: color 0.3s ease;
+    }
+
+    .category-folder .bi-clipboard2-pulse-fill,
+    .category-folder .bi-clipboard2-heart-fill {
+        transition: transform 0.3s ease;
+    }
+
+    .category-folder:hover .bi-clipboard2-pulse-fill,
+    .category-folder:hover .bi-clipboard2-heart-fill {
+        transform: scale(1.15);
+    }
