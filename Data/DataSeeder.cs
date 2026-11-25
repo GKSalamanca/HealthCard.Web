@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -10,11 +10,7 @@ namespace Data
     {
         public static async Task InitializeAsync(ApplicationDbContext context)
         {
-            // Если категории уже есть, значит база уже заполнена (защита от повторного сидирования)
-            if (await context.Categories.AnyAsync())
-            {
-                return;
-            }
+            await using var transaction = await context.Database.BeginTransactionAsync();
 
             var categories = new List<Category>
                 {
@@ -31,7 +27,13 @@ namespace Data
                     Category.CreateSystem("Флюрография", false, 11, "Профилактическое рентгеновское исследование", "bi bi-shield-shaded")
                 };
 
-            await context.Categories.AddRangeAsync(categories);
+            var existingCategories = await context.Categories.Where(c => c.IsSystem).ToListAsync();
+            for (var i = 0; i < categories.Count; i++)
+            {
+                var existing = existingCategories.FirstOrDefault(c => c.Name == categories[i].Name);
+                if (existing != null) categories[i] = existing;
+                else context.Categories.Add(categories[i]);
+            }
             await context.SaveChangesAsync(); // Сохраняем, чтобы сгенерировались Id категорий
 
             // 2. Заполняем параметры для лабораторных тестов
@@ -42,11 +44,12 @@ namespace Data
             await SeedOAM(context, categories[4].Id);
 
             await context.SaveChangesAsync();
+            await transaction.CommitAsync();
         }
 
         private static async Task SeedOAK(ApplicationDbContext context, int categoryId)
         {
-                var parameters = new List<TestParameter>
+            var parameters = new List<TestParameter>
             {
                 TestParameter.Create(categoryId, "Количество лейкоцитов", "10^9/л", 4.00m, 9.00m, 1),
                 TestParameter.Create(categoryId, "Количество эритроцитов", "10^12/л", 3.80m, 5.50m, 2),
@@ -71,7 +74,8 @@ namespace Data
                 TestParameter.Create(categoryId, "Нейтрофильно-лимфоцитарное соотношение (NLR)", "ед.", 0.20m, 3.50m, 21),
                 TestParameter.Create(categoryId, "СОЭ по Вестергрену", "мм/ч", 2.00m, 20.00m, 22)
             };
-            await context.TestParameters.AddRangeAsync(parameters);
+            var existingNames = await context.TestParameters.Where(p => p.CategoryId == categoryId).Select(p => p.Name).ToListAsync();
+            await context.TestParameters.AddRangeAsync(parameters.Where(p => !existingNames.Contains(p.Name)));
         }
 
         private static async Task SeedBiochemistry(ApplicationDbContext context, int categoryId)
@@ -94,7 +98,8 @@ namespace Data
                 TestParameter.Create(categoryId, "Ферритин", "нг/мл", 20.00m, 250.00m, 14),
                 TestParameter.Create(categoryId, "С-реактивный белок", "мг/л", 0.00m, 5.00m, 15)
             };
-            await context.TestParameters.AddRangeAsync(parameters);
+            var existingNames = await context.TestParameters.Where(p => p.CategoryId == categoryId).Select(p => p.Name).ToListAsync();
+            await context.TestParameters.AddRangeAsync(parameters.Where(p => !existingNames.Contains(p.Name)));
         }
 
         private static async Task SeedLipidProfile(ApplicationDbContext context, int categoryId)
@@ -107,7 +112,8 @@ namespace Data
                 TestParameter.Create(categoryId, "Триглицериды", "ммоль/л", 0.45m, 1.70m, 4),
                 TestParameter.Create(categoryId, "Индекс атерогенности", "ед.", 0.00m, 3.50m, 5)
             };
-            await context.TestParameters.AddRangeAsync(parameters);
+            var existingNames = await context.TestParameters.Where(p => p.CategoryId == categoryId).Select(p => p.Name).ToListAsync();
+            await context.TestParameters.AddRangeAsync(parameters.Where(p => !existingNames.Contains(p.Name)));
         }
 
         private static async Task SeedThyroid(ApplicationDbContext context, int categoryId)
@@ -120,7 +126,8 @@ namespace Data
                 TestParameter.Create(categoryId, "Анти-ТПО", "Ед/мл", 0.00m, 30.00m, 4),
                 TestParameter.Create(categoryId, "Анти-ТГ", "Ед/мл", 0.00m, 40.00m, 5)
             };
-            await context.TestParameters.AddRangeAsync(parameters);
+            var existingNames = await context.TestParameters.Where(p => p.CategoryId == categoryId).Select(p => p.Name).ToListAsync();
+            await context.TestParameters.AddRangeAsync(parameters.Where(p => !existingNames.Contains(p.Name)));
         }
         private static async Task SeedOAM(ApplicationDbContext context, int categoryId)
         {
@@ -135,10 +142,11 @@ namespace Data
                 TestParameter.Create(categoryId, "Эпителий плоский", "в п/з", 0.00m, 5.00m, 7),
                 TestParameter.Create(categoryId, "Бактерии", "в п/з", 0.00m, 0.00m, 8)
             };
-            await context.TestParameters.AddRangeAsync(parameters);
+            var existingNames = await context.TestParameters.Where(p => p.CategoryId == categoryId).Select(p => p.Name).ToListAsync();
+            await context.TestParameters.AddRangeAsync(parameters.Where(p => !existingNames.Contains(p.Name)));
         }
 
 
     }
-    
+
 }

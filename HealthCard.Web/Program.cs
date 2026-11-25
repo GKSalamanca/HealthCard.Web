@@ -1,106 +1,64 @@
 using Data;
 using HealthCard.Services;
 using HealthCard.Services.Interfaces;
+using HealthCard.Web.Infrastructure;
+using HealthCard.Web.Services;
 using Microsoft.EntityFrameworkCore;
 using Models.UserSettings;
 using Services;
 using Services.Interfaces;
+using Microsoft.AspNetCore.DataProtection;
+namespace HealthCard.Web;
 
-namespace HealthCard.Web
+public class Program
 {
-    public class Program
+    public static async Task Main(string[] args)
     {
-        public static async Task Main(string[] args)
+        var builder = WebApplication.CreateBuilder(args);
+        builder.Logging.ClearProviders();
+        builder.Logging.AddConsole();
+        builder.Logging.AddDebug();
+        if (builder.Environment.IsEnvironment("Testing"))
+            builder.Services.AddDataProtection().UseEphemeralDataProtectionProvider()
+                .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(builder.Configuration["Storage:Root"] ?? Path.Combine(Path.GetTempPath(), "HealthCardQA"), "keys")));
+        builder.Services.AddControllersWithViews(options => options.ModelBinderProviders.Insert(0, new FlexibleDecimalBinderProvider()));
+        builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+        builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
         {
-            var builder = WebApplication.CreateBuilder(args);
-
-            // 1. Настройка БД (PostgreSQL)
-            builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-            // 2. Регистрация Identity
-            builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
-            {
-                options.SignIn.RequireConfirmedAccount = false;
-                options.Password.RequireDigit = true;
-                options.Password.RequireLowercase = true;
-                options.Password.RequireUppercase = true;
-                options.Password.RequireNonAlphanumeric = false;
-                options.Password.RequiredLength = 6;
-            })
-            .AddEntityFrameworkStores<ApplicationDbContext>();
-
-            // 3. Настройка Cookie для правильного редиректа на страницу входа
-            builder.Services.ConfigureApplicationCookie(options =>
-            {
-                options.LoginPath = "/Account/Login";          // Куда редиректить, если не авторизован
-                options.LogoutPath = "/Account/Logout";        // Путь для выхода
-                options.AccessDeniedPath = "/Account/AccessDenied"; // Путь при отказе в доступе
-                options.ExpireTimeSpan = TimeSpan.FromDays(7); // Время жизни куки
-            });
-
-            // 4. РЕГИСТРАЦИЯ НАШИХ СЕРВИСОВ
-            builder.Services.AddScoped<ICategoryService, CategoryService>();
-            // Позже добавим сюда: builder.Services.AddScoped<IMedicalRecordService, MedicalRecordService>();
-            // Регистрация сервисов
-            builder.Services.AddScoped<ICategoryService, CategoryService>();
-            builder.Services.AddScoped<IFileStorageService, FileStorageService>();
-
-            var app = builder.Build();
-
-            // 5. НАЧАЛО БЛОКА SEED ДАННЫХ (Отличная реализация!)
-            using (var scope = app.Services.CreateScope())
-            {
-                var services = scope.ServiceProvider;
-                try
-                {
-                    var context = services.GetRequiredService<ApplicationDbContext>();
-
-                    // Гарантируем применение миграций
-                    await context.Database.MigrateAsync();
-
-                    // Заполняем справочники
-                    await DataSeeder.InitializeAsync(context);
-
-                    Console.WriteLine("✅ База данных успешно инициализирована и заполнена!");
-                }
-                catch (Exception ex)
-                {
-                    var logger = services.GetRequiredService<ILogger<Program>>();
-                    logger.LogError(ex, "Произошла ошибка при заполнении базы данных начальными данными.");
-                }
-            }
-            // КОНЕЦ БЛОКА SEED ДАННЫХ
-
-            // 6. Configure the HTTP request pipeline.
-            if (!app.Environment.IsDevelopment())
-            {
-                app.UseExceptionHandler("/Home/Error");
-                app.UseHsts();
-            }
-
-            app.UseHttpsRedirection();
-
-            // ВАЖНО: Разрешаем отдачу статических файлов (нужно для загрузки PDF/картинок в wwwroot/uploads)
-            app.UseStaticFiles();
-
-            app.UseRouting();
-
-            // ВАЖНО: Порядок имеет значение! Сначала аутентификация (чтение куки), потом авторизация (проверка прав)
-            app.UseAuthentication();
-            app.UseAuthorization();
-
-            app.MapStaticAssets();
-
-            // 7. МАРШРУТ ПО УМОЛЧАНИЮ
-            // Меняем Home на Dashboard, чтобы при запуске открывалась главная страница приложения
-            // (Если пользователь не авторизован, его автоматически перекинет на /Account/Login благодаря настройкам Cookie выше)
-            app.MapControllerRoute(
-                name: "default",
-                pattern: "{controller=Dashboard}/{action=Index}/{id?}")
-                .WithStaticAssets();
-
-            app.Run();
+            options.SignIn.RequireConfirmedAccount = false;
+            options.User.RequireUniqueEmail = true;
+            options.Password.RequireDigit = true; options.Password.RequireLowercase = true; options.Password.RequireUppercase = true;
+            options.Password.RequireNonAlphanumeric = false; options.Password.RequiredLength = 6;
+        }).AddEntityFrameworkStores<ApplicationDbContext>().AddErrorDescriber<RussianIdentityErrors>();
+        builder.Services.ConfigureApplicationCookie(options =>
+        {
+            options.LoginPath = "/Account/Login"; options.LogoutPath = "/Account/Logout"; options.AccessDeniedPath = "/Account/AccessDenied";
+            options.ExpireTimeSpan = TimeSpan.FromDays(7); options.Cookie.HttpOnly = true;
+        });
+        builder.Services.AddScoped<ICategoryService, CategoryService>();
+        builder.Services.AddScoped<IFileStorageService, FileStorageService>();
+        builder.Services.AddScoped<IResultEvaluationService, ResultEvaluationService>();
+        builder.Services.AddScoped<RecordQueryService>();
+        QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+        var app = builder.Build();
+        using (var scope = app.Services.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            await context.Database.MigrateAsync();
+            await DataSeeder.InitializeAsync(context);
         }
+        if (!app.Environment.IsDevelopment()) { app.UseExceptionHandler("/Home/Error"); app.UseHsts(); }
+        if (!app.Environment.IsEnvironment("Testing")) app.UseHttpsRedirection();
+        // Legacy attachments are only served by the owner-checked Download action.
+        app.Use(async (context, next) =>
+        {
+            if (app.Environment.IsEnvironment("Testing")) context.Response.Headers["X-HealthCard-Environment"] = "Testing";
+            if (context.Request.Path.StartsWithSegments("/uploads")) { context.Response.StatusCode = 404; return; }
+            await next(context);
+        });
+        app.UseStaticFiles(); app.UseRouting(); app.UseAuthentication(); app.UseAuthorization();
+        app.MapStaticAssets();
+        app.MapControllerRoute(name: "default", pattern: "{controller=Dashboard}/{action=Index}/{id?}").WithStaticAssets();
+        await app.RunAsync();
     }
 }

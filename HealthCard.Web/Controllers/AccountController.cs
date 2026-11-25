@@ -1,130 +1,80 @@
-﻿using Models.UserSettings;
+using HealthCard.Web.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Models.UserSettings;
 using ViewModels.Entrance;
-
 namespace HealthCard.Web.Controllers;
 
-public class AccountController : Controller
+public class AccountController(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn) : Controller
 {
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly SignInManager<ApplicationUser> _signInManager;
-
-    public AccountController(
-        UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager)
-    {
-        _userManager = userManager;
-        _signInManager = signInManager;
-    }
-
-    // GET: /Account/Login
     [HttpGet]
     public IActionResult Login(string? returnUrl = null)
-    {
-        ViewData["ReturnUrl"] = returnUrl;
-        return View(new LoginViewModel());
-    }
-
-    // POST: /Account/Login
-    [HttpPost]
-    [ValidateAntiForgeryToken]
+    { ViewData["ReturnUrl"] = returnUrl; return View(new LoginViewModel()); }
+    [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
     {
-        returnUrl ??= Url.Content("~/");
         ViewData["ReturnUrl"] = returnUrl;
-
-        if (ModelState.IsValid)
-        {
-            // Проверяем, существует ли пользователь
-            var user = await _userManager.FindByEmailAsync(model.Email);
-
-            if (user == null)
-            {
-                // Пользователь не найден
-                ModelState.AddModelError(string.Empty, "Пользователь не зарегистрирован. Пожалуйста, зарегистрируйтесь.");
-                return View(model);
-            }
-
-            // Пытаемся войти
-            var result = await _signInManager.PasswordSignInAsync(
-                user,
-                model.Password,
-                model.RememberMe,
-                lockoutOnFailure: false);
-
-            if (result.Succeeded)
-            {
-                return LocalRedirect(returnUrl);
-            }
-
-            if (result.IsLockedOut)
-            {
-                ModelState.AddModelError(string.Empty, "Аккаунт заблокирован. Попробуйте позже.");
-            }
-            else
-            {
-                ModelState.AddModelError(string.Empty, "Неверный пароль. Попробуйте еще раз.");
-            }
-        }
-
+        if (!ModelState.IsValid) return View(model);
+        var user = await users.FindByEmailAsync(model.Email.Trim());
+        var result = user == null ? Microsoft.AspNetCore.Identity.SignInResult.Failed : await signIn.PasswordSignInAsync(user, model.Password, model.RememberMe, true);
+        if (result.Succeeded) return LocalRedirect(Url.IsLocalUrl(returnUrl) ? returnUrl! : Url.Content("~/"));
+        ModelState.AddModelError("", result.IsLockedOut ? "Слишком много попыток входа. Повторите через несколько минут." : "Неверный email или пароль");
         return View(model);
     }
-
-    // GET: /Account/Register
-    [HttpGet]
-    public IActionResult Register()
-    {
-        return View(new RegisterViewModel());
-    }
-
-    // POST: /Account/Register
-    [HttpPost]
-    [ValidateAntiForgeryToken]
+    [HttpGet] public IActionResult Register() => View(new RegisterViewModel());
+    [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(RegisterViewModel model)
     {
         if (ModelState.IsValid)
         {
-            // Проверяем, не зарегистрирован ли уже такой email
-            var existingUser = await _userManager.FindByEmailAsync(model.Email);
-            if (existingUser != null)
+            if (await users.FindByEmailAsync(model.Email.Trim()) != null) ModelState.AddModelError("Email", "Этот email уже зарегистрирован");
+            else
             {
-                ModelState.AddModelError(string.Empty, "Пользователь с таким Email уже зарегистрирован.");
-                return View(model);
-            }
-
-            var user = new ApplicationUser(model.Email, model.FullName);
-            var result = await _userManager.CreateAsync(user, model.Password);
-
-            if (result.Succeeded)
-            {
-                // Успешная регистрация
-                TempData["SuccessMessage"] = "Пользователь зарегистрирован. Нажмите 'Войти' для входа в систему.";
-                return RedirectToAction("Login");
-            }
-
-            // Если были ошибки
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError(string.Empty, error.Description);
+                var user = new ApplicationUser(model.Email.Trim(), model.FullName.Trim());
+                var result = await users.CreateAsync(user, model.Password);
+                if (result.Succeeded) { TempData["SuccessMessage"] = "Вы зарегистрированы. Войдите в свою карточку здоровья."; return RedirectToAction(nameof(Login)); }
+                foreach (var error in result.Errors) ModelState.AddModelError("", error.Description);
             }
         }
-
         return View(model);
     }
-
-    // POST: /Account/Logout
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Logout()
+    [Authorize, HttpGet]
+    public async Task<IActionResult> Profile()
     {
-        await _signInManager.SignOutAsync();
-        return RedirectToAction("Login");
+        var user = await users.GetUserAsync(User);
+        if (user == null) return Challenge();
+        return View(new ProfileViewModel { FullName = user.FullName, Email = user.Email ?? "", DateOfBirth = user.DateOfBirth, Gender = user.Gender, BloodType = user.BloodeType });
     }
-
-    // GET: /Account/AccessDenied
-    public IActionResult AccessDenied()
+    [Authorize, HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Profile(ProfileViewModel model)
     {
-        return View();
+        var user = await users.GetUserAsync(User);
+        if (user == null) return Challenge();
+        model.Email = user.Email ?? "";
+        if (ModelState.IsValid)
+        {
+            user.UpdateProfile(model.FullName.Trim(), model.DateOfBirth, model.Gender, string.IsNullOrEmpty(model.BloodType) ? null : model.BloodType);
+            var result = await users.UpdateAsync(user);
+            if (result.Succeeded) { await signIn.RefreshSignInAsync(user); TempData["SuccessMessage"] = "Профиль сохранен"; return RedirectToAction(nameof(Profile)); }
+            foreach (var error in result.Errors) ModelState.AddModelError("", error.Description);
+        }
+        return View(model);
     }
+    [Authorize, HttpGet] public IActionResult ChangePassword() => View(new ChangePasswordViewModel());
+    [Authorize, HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model)
+    {
+        var user = await users.GetUserAsync(User); if (user == null) return Challenge();
+        if (ModelState.IsValid)
+        {
+            var result = await users.ChangePasswordAsync(user, model.CurrentPassword, model.NewPassword);
+            if (result.Succeeded) { await signIn.RefreshSignInAsync(user); TempData["SuccessMessage"] = "Пароль изменен"; return RedirectToAction(nameof(Profile)); }
+            foreach (var error in result.Errors) ModelState.AddModelError("", error.Description);
+        }
+        return View(model);
+    }
+    [Authorize, HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Logout() { await signIn.SignOutAsync(); return RedirectToAction(nameof(Login)); }
+    [HttpGet] public IActionResult AccessDenied() => View();
 }

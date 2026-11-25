@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -10,21 +10,21 @@ namespace Models.UserSettings
     public class UserParameterNorm
     {
         [Key]
-        public int Id { get; private set;  }
+        public int Id { get; private set; }
 
         [Required]
-        public string UserId {  get; private set; } = string.Empty;
+        public string UserId { get; private set; } = string.Empty;
         [ForeignKey(nameof(UserId))]
         public virtual ApplicationUser User { get; private set; } = null!;
 
-        public int TestParameterId {  get; private set; }
+        public int TestParameterId { get; private set; }
         [ForeignKey(nameof(TestParameterId))]
         public virtual TestParameter TestParameter { get; private set; } = null!;
         //Персональная нижняя граница нормы
-        [Column(TypeName = "decimal(10,2)")]
-        public decimal CustomNormMin {  get; private set; }
+        [Column(TypeName = "numeric(12,4)")]
+        public decimal CustomNormMin { get; private set; }
         //Персональная верхняя граница нормы
-        [Column(TypeName = "decimal(10,2)")]
+        [Column(TypeName = "numeric(12,4)")]
         public decimal CustomNormMax { get; private set; }
 
         private UserParameterNorm()
@@ -44,8 +44,8 @@ namespace Models.UserSettings
             {
                 UserId = userId,
                 TestParameterId = testParameterId,
-                CustomNormMin = Math.Round(customNormMin, 2),
-                CustomNormMax = Math.Round(customNormMax, 2)
+                CustomNormMin = Math.Round(customNormMin, 4),
+                CustomNormMax = Math.Round(customNormMax, 4)
             };
         }
 
@@ -57,8 +57,8 @@ namespace Models.UserSettings
             if (customNormMin > customNormMax)
                 throw new ArgumentException("Нижняя граница нормы не может быть больше верхней границы");
 
-            CustomNormMin = Math.Round(customNormMin, 2);
-            CustomNormMax = Math.Round(customNormMax, 2);
+            CustomNormMin = Math.Round(customNormMin, 4);
+            CustomNormMax = Math.Round(customNormMax, 4);
         }
     }
 }

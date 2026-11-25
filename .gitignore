@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# Private user attachments and local verification files
+**/App_Data/
+**/wwwroot/uploads/

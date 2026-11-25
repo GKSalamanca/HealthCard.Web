@@ -1,92 +1,25 @@
-﻿using Data;
-using Models.UserSettings;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
+using Data;
+using HealthCard.Web.Infrastructure;
+using HealthCard.Web.Services;
+using HealthCard.Web.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
 namespace HealthCard.Web.Controllers;
 
-[Authorize]
-public class CategoryRecordsController : Controller
+public class CategoryRecordsController(ApplicationDbContext db, RecordQueryService queries) : UserController(db)
 {
-    private readonly ApplicationDbContext _context;
-    private readonly UserManager<ApplicationUser> _userManager;
-
-    public CategoryRecordsController(
-        ApplicationDbContext context,
-        UserManager<ApplicationUser> userManager)
-    {
-        _context = context;
-        _userManager = userManager;
-    }
-
-    // GET: /CategoryRecords/Details/5
+    [HttpGet]
     public async Task<IActionResult> Details(int id)
     {
-        var userId = _userManager.GetUserId(User);
-
-        var category = await _context.Categories.FindAsync(id);
-        if (category == null)
-            return NotFound();
-
-        // Получаем все записи пользователя по этой категории
-        var records = await _context.MedicalRecords
-            .Include(mr => mr.TestResults)
-                .ThenInclude(tr => tr.TestParameter)
-            .Where(mr => mr.UserId == userId && mr.CategoryId == id)
-            .OrderByDescending(mr => mr.RecordDate)
-            .ToListAsync();
-
-        if (!category.IsLabTest || !records.Any())
+        var category = await queries.Categories(UserId).FirstOrDefaultAsync(c => c.Id == id);
+        if (category == null) return NotFound();
+        var results = await queries.ResultsAsync(UserId, id);
+        return View(new CategoryRecordsViewModel
         {
-            ViewBag.Category = category;
-            ViewBag.Records = records;
-            return View(records);
-        }
-
-        // Для лабораторных анализов формируем матрицу: строки - параметры, колонки - даты
-        var allParameters = await _context.TestParameters
-            .Where(p => p.CategoryId == id)
-            .OrderBy(p => p.SortOrder)
-            .ToListAsync();
-
-        var dates = records.Select(r => r.RecordDate).Distinct().OrderBy(d => d).ToList();
-
-        var matrix = new List<ParameterRowViewModel>();
-        foreach (var param in allParameters)
-        {
-            var row = new ParameterRowViewModel
-            {
-                ParameterName = param.Name,
-                Unit = param.Unit,
-                NormMin = param.NormMin,
-                NormMax = param.NormMax,
-                Values = new Dictionary<DateOnly, decimal?>()
-            };
-
-            foreach (var record in records)
-            {
-                var result = record.TestResults.FirstOrDefault(tr => tr.TestParameterId == param.Id);
-                row.Values[record.RecordDate] = result?.Value;
-            }
-
-            matrix.Add(row);
-        }
-
-        ViewBag.Category = category;
-        ViewBag.Dates = dates;
-        ViewBag.Matrix = matrix;
-
-        return View(records);
+            Category = category,
+            Records = await Db.MedicalRecords.AsNoTracking().Where(r => r.UserId == UserId && r.CategoryId == id).OrderBy(r => r.RecordDate).ThenBy(r => r.Id).ToListAsync(),
+            Parameters = await Db.TestParameters.AsNoTracking().Where(p => p.CategoryId == id).OrderBy(p => p.SortOrder).ToListAsync(),
+            Results = results.GroupBy(r => (r.RecordId, r.ParameterId)).ToDictionary(g => g.Key, g => g.Last())
+        });
     }
-}
-
-public class ParameterRowViewModel
-{
-    public string ParameterName { get; set; } = string.Empty;
-    public string Unit { get; set; } = string.Empty;
-    public decimal NormMin { get; set; }
-    public decimal NormMax { get; set; }
-    public Dictionary<DateOnly, decimal?> Values { get; set; } = new();
 }

@@ -38,7 +38,7 @@ namespace Data
                 .WithMany(c => c.MedicalRecords)
                 .HasForeignKey(mr => mr.CategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
-            // 💡 Это защищает от ситуации, когда пользователь удаляет категорию "ОАК", а его старые записи остаются "висящими в воздухе".
+            // Это защищает от ситуации, когда пользователь удаляет категорию "ОАК", а его старые записи остаются "висящими в воздухе".
             // Связь: TestResult (Многие) -> MedicalRecord (Один)
             builder.Entity<TestResult>()
                 .HasOne(tr =>  tr.MedicalRecord)

@@ -29,3 +29,18 @@ body {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
   text-align: start;
 }
+/* Application layout and completed workflows */
+body { margin:0; min-height:100vh; display:flex; flex-direction:column; background:#f5f7fb; }
+main { flex:1; }
+.card { border-color:#e1e7ef; border-radius:12px; box-shadow:0 2px 9px rgba(24,44,74,.03); }
+.card-header { background:#fff; padding:1rem; }
+.max-form { max-width:760px; }
+.empty-state { padding:3rem 1.5rem; border:1px dashed #cad4e1; border-radius:12px; text-align:center; background:#fff; }
+.preserve-lines { white-space:pre-wrap; }
+.record-excerpt { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.trend-chart { position:relative; width:100%; min-width:0; height:280px; }
+.trend-chart canvas { display:block; max-width:100%; }
+.table-responsive th, .table-responsive td { padding:.85rem; }
+#category-parameters input:not([type=checkbox]):not([type=hidden]) { min-width:110px; }
+#category-parameters input[data-field=Name] { min-width:200px; }
+.validation-summary-valid { display:none; }
