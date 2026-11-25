@@ -261,10 +261,10 @@ namespace Data.Migrations
                         .HasColumnType("character varying(200)");
 
                     b.Property<decimal>("NormMax")
-                        .HasColumnType("decimal(10,2)");
+                        .HasColumnType("numeric(12,4)");
 
                     b.Property<decimal>("NormMin")
-                        .HasColumnType("decimal(10,2)");
+                        .HasColumnType("numeric(12,4)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
@@ -296,7 +296,7 @@ namespace Data.Migrations
                         .HasColumnType("integer");
 
                     b.Property<decimal>("Value")
-                        .HasColumnType("decimal(10,2)");
+                        .HasColumnType("numeric(12,4)");
 
                     b.HasKey("Id");
 
@@ -396,10 +396,10 @@ namespace Data.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("CustomNormMax")
-                        .HasColumnType("decimal(10,2)");
+                        .HasColumnType("numeric(12,4)");
 
                     b.Property<decimal>("CustomNormMin")
-                        .HasColumnType("decimal(10,2)");
+                        .HasColumnType("numeric(12,4)");
 
                     b.Property<int>("TestParameterId")
                         .HasColumnType("integer");

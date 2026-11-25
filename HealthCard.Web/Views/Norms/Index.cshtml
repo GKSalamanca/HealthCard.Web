@@ -1,0 +1,8 @@
+@model NormListViewModel
+@{ViewData["Title"]="Персональные нормы";}
+<h1 class="h3">Персональные нормы</h1><p class="text-muted">Ваши интервалы применяются в карточках, истории и аналитике. Общий справочник остается без изменений.</p>
+<form method="get" class="d-flex flex-wrap gap-2 align-items-end mb-4"><div><label asp-for="CategoryId" class="form-label">Категория</label><select asp-for="CategoryId" class="form-select"><option value="">Все анализы</option>@foreach(var c in Model.Categories){<option value="@c.Id">@c.Name</option>}</select></div><button type="submit" class="btn btn-primary">Показать</button><a asp-action="Index" class="btn btn-outline-secondary">Сбросить фильтр</a></form>
+<div class="card table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Показатель</th><th>Общий интервал</th><th>Мой интервал</th><th>Действия</th></tr></thead><tbody>
+@foreach(var p in Model.Parameters){<tr><td><strong>@p.Name</strong><br /><small class="text-muted">@p.Category · @p.Unit</small></td><td>@p.DefaultMin.ToString("0.####") – @p.DefaultMax.ToString("0.####")</td><td>@if(p.CustomMin.HasValue){<span>@p.CustomMin.Value.ToString("0.####") – @p.CustomMax?.ToString("0.####")</span>}else{<span class="text-muted">Используется общий</span>}</td><td><div class="d-flex flex-wrap gap-2"><a asp-action="Edit" asp-route-id="@p.Id" class="btn btn-sm btn-outline-primary">Настроить</a>@if(p.CustomMin.HasValue){<form asp-action="Reset" asp-route-id="@p.Id" method="post"><button type="submit" class="btn btn-sm btn-outline-secondary">Вернуть общий</button></form>}</div></td></tr>}
+</tbody></table></div>
+@if(Model.Parameters.Count==0){<p class="text-muted mt-4">Показателей пока нет. Добавьте их в свою лабораторную категорию.</p>}

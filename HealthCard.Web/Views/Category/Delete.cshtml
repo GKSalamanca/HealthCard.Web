@@ -1,0 +1,6 @@
+@model global::Models.ParameterBase.Category
+@{ViewData["Title"]="Удалить категорию";int count=ViewBag.RecordsCount;}
+<div class="card max-form mx-auto"><div class="card-body p-4"><h1 class="h4">Удалить категорию «@Model.Name»?</h1>
+@if(count>0){<p>В категории сохранено записей: <strong>@count</strong>. Категория с историей не удаляется.</p><a asp-controller="CategoryRecords" asp-action="Details" asp-route-id="@Model.Id" class="btn btn-primary">Открыть записи</a><a asp-action="Index" class="btn btn-outline-secondary ms-2">Назад</a>}
+else{<p>Будут удалены категория и ее справочник показателей. Базовые категории останутся без изменений.</p><form method="post" asp-action="Delete" asp-route-id="@Model.Id"><a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Отмена</a><button type="submit" class="btn btn-danger ms-2">Удалить категорию</button></form>}
+</div></div>

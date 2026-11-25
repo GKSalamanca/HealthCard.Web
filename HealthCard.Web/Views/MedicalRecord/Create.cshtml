@@ -1,159 +1,22 @@
-﻿@model HealthCard.Web.ViewModels.RecordCreateViewModel
-@{
-    ViewData["Title"] = "Добавить запись";
-}
-
-<div class="row">
-    <div class="col-12">
-        <h2><i class="bi bi-plus-circle"></i> Добавить запись</h2>
-    </div>
+@model RecordCreateViewModel
+@{ var editing=Model.Id>0; ViewData["Title"]=editing?"Редактировать запись":"Добавить запись"; }
+<div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4"><h1 class="h3 mb-0">@ViewData["Title"]</h1><a asp-controller="Category" asp-action="Create" class="btn btn-outline-primary">Создать свою категорию</a></div>
+<div class="card"><div class="card-body p-4">
+<form asp-action="@(editing?"Edit":"Create")" asp-route-id="@(editing?Model.Id:(int?)null)" method="post" enctype="multipart/form-data" id="record-form">
+<input asp-for="Id" type="hidden" />
+<div asp-validation-summary="All" class="text-danger" role="alert"></div>
+<div class="row g-3">
+<div class="col-md-6"><label asp-for="CategoryId" class="form-label">Категория</label>
+@if(editing) { <input asp-for="CategoryId" type="hidden" /><input class="form-control" value="@Model.Categories.FirstOrDefault(c=>c.Id==Model.CategoryId)?.Name" readonly /> }
+else { <select asp-for="CategoryId" class="form-select" data-parameters-url="@Url.Action("Parameters")"><option value="">Выберите категорию</option>@foreach(var category in Model.Categories){<option value="@category.Id">@category.Name</option>}</select> }
+<span asp-validation-for="CategoryId" class="text-danger"></span></div>
+<div class="col-md-6"><label asp-for="RecordDate" class="form-label">Дата исследования</label><input asp-for="RecordDate" type="date" class="form-control" max="@DateTime.Today.ToString("yyyy-MM-dd")" required /><span asp-validation-for="RecordDate" class="text-danger"></span></div>
+<div class="col-12"><label asp-for="Title" class="form-label">Название записи</label><input asp-for="Title" class="form-control" placeholder="Например, липидный профиль в лаборатории" /><span asp-validation-for="Title" class="text-danger"></span></div>
+<div class="col-12"><label asp-for="Comment" class="form-label">Комментарий</label><textarea asp-for="Comment" class="form-control" rows="3"></textarea><span asp-validation-for="Comment" class="text-danger"></span></div>
 </div>
-
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-body">
-                <form asp-action="Create" method="post" enctype="multipart/form-data">
-                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-                    <div class="mb-3">
-                        <label asp-for="CategoryId" class="form-label"></label>
-                        <select asp-for="CategoryId" asp-items="@(new SelectList(Model.Categories, "Id", "Name"))" 
-                                class="form-select" onchange="this.form.submit()">
-                            <option value="">-- Выберите категорию --</option>
-                        </select>
-                        <span asp-validation-for="CategoryId" class="text-danger"></span>
-                    </div>
-
-                    @if (Model.Categories.Any(c => c.Id == Model.CategoryId))
-                    {
-                        <div class="mb-3">
-                            <label asp-for="RecordDate" class="form-label"></label>
-                            <input asp-for="RecordDate" class="form-control" type="date" />
-                            <span asp-validation-for="RecordDate" class="text-danger"></span>
-                        </div>
-
-                        <div class="mb-3">
-                            <label asp-for="Title" class="form-label"></label>
-                            <input asp-for="Title" class="form-control" placeholder="Например: ОАК в Инвитро" />
-                            <span asp-validation-for="Title" class="text-danger"></span>
-                        </div>
-
-                        <div class="mb-3">
-                            <label asp-for="Comment" class="form-label"></label>
-                            <textarea asp-for="Comment" class="form-control" rows="3"></textarea>
-                            <span asp-validation-for="Comment" class="text-danger"></span>
-                        </div>
-
-                        @if (Model.IsLabTest && Model.Parameters.Any())
-                        {
-                            <div class="mb-3">
-                                <h5>Результаты анализа</h5>
-                                <div class="table-responsive">
-                                    <table class="table table-bordered">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th>Параметр</th>
-                                                <th>Норма</th>
-                                                <th>Ед. изм.</th>
-                                                <th>Ваш результат</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @for (var i = 0; i < Model.Parameters.Count; i++)
-                                            {
-                                                <tr>
-                                                    <td>@Model.Parameters[i].ParameterName</td>
-                                                    <td>@Model.Parameters[i].NormMin – @Model.Parameters[i].NormMax</td>
-                                                    <td>@Model.Parameters[i].Unit</td>
-                                                    <td>
-                                                        <input type="hidden" asp-for="@Model.Parameters[i].TestParameterId" />
-                                                        <input type="hidden" asp-for="@Model.Parameters[i].ParameterName" />
-                                                        <input type="hidden" asp-for="@Model.Parameters[i].Unit" />
-                                                        <input type="hidden" asp-for="@Model.Parameters[i].NormMin" />
-                                                        <input type="hidden" asp-for="@Model.Parameters[i].NormMax" />
-                                                        <input type="number" step="0.01" asp-for="@Model.Parameters[i].Value" 
-                                                               class="form-control form-control-sm" />
-                                                    </td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        }
-
-                        <div class="mb-3">
-                            <label asp-for="File" class="form-label"></label>
-                            <input asp-for="File" class="form-control" accept=".pdf,.jpg,.jpeg,.png" />
-                            <span asp-validation-for="File" class="text-danger"></span>
-                            <small class="text-muted">Максимальный размер: 10 МБ</small>
-                        </div>
-
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a asp-action="Index" class="btn btn-secondary">
-                                <i class="bi bi-x-lg"></i> Отмена
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-save"></i> Сохранить
-                            </button>
-                        </div>
-                    }
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Подсказка</h5>
-            </div>
-            <div class="card-body">
-                <p class="mb-2">1. Выберите категорию анализа</p>
-                <p class="mb-2">2. Заполните дату и заголовок</p>
-                <p class="mb-2">3. Введите результаты (если это лабораторный анализ)</p>
-                <p class="mb-0">4. Прикрепите файл с бланком (опционально)</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-@section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-    
-    <script>
-        // При изменении категории перезагружаем форму с выбранной категорией
-        document.querySelector('select[name="CategoryId"]').addEventListener('change', function() {
-            const categoryId = this.value;
-            if (categoryId) {
-                // Сохраняем другие поля
-                const recordDate = document.querySelector('input[name="RecordDate"]').value;
-                const title = document.querySelector('input[name="Title"]').value;
-                const comment = document.querySelector('textarea[name="Comment"]').value;
-                
-                // Создаем форму для отправки
-                const form = document.createElement('form');
-                form.method = 'GET';
-                form.action = '@Url.Action("Create", "MedicalRecord")';
-                
-                // Добавляем параметры
-                form.appendChild(createHiddenInput('categoryId', categoryId));
-                form.appendChild(createHiddenInput('RecordDate', recordDate));
-                form.appendChild(createHiddenInput('Title', title));
-                form.appendChild(createHiddenInput('Comment', comment));
-                
-                document.body.appendChild(form);
-                form.submit();
-            }
-        });
-        
-        function createHiddenInput(name, value) {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = name;
-            input.value = value;
-            return input;
-        }
-    </script>
-}
+<div id="parameters-container" aria-live="polite"><partial name="_Parameters" model="Model" /></div>
+<div class="mt-4"><label asp-for="File" class="form-label">Прикрепить PDF или изображение</label><input asp-for="File" type="file" accept=".pdf,.jpg,.jpeg,.png" class="form-control" /><div class="form-text">PDF, JPG, PNG. Размер до 10 МБ.</div><span asp-validation-for="File" class="text-danger"></span></div>
+@if(Model.ExistingFilePath!=null){<div class="mt-3"><a asp-action="Download" asp-route-id="@Model.Id">Скачать текущее вложение</a><div class="form-check mt-2"><input asp-for="RemoveFile" class="form-check-input" /><label asp-for="RemoveFile" class="form-check-label">Удалить текущее вложение</label></div></div>}
+<div class="d-flex gap-2 justify-content-end mt-4"><a asp-action="@(editing?"Details":"Index")" asp-route-id="@(editing?Model.Id:(int?)null)" class="btn btn-outline-secondary">Отмена</a><button class="btn btn-primary" type="submit" id="save-record">Сохранить запись</button></div>
+</form></div></div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

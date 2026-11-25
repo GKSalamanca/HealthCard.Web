@@ -1,105 +1,11 @@
-﻿@{
-    ViewData["Title"] = "Детали записи";
-    var record = ViewBag.Record as Models.ParameterBase.MedicalRecord;
-    var results = ViewBag.Results as List<dynamic>;
-}
-
-<div class="row mb-4">
-    <div class="col-12">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a asp-action="Index">Мои записи</a></li>
-                <li class="breadcrumb-item active">@record.Title</li>
-            </ol>
-        </nav>
-        <h2>@record.Title</h2>
-        <p class="text-muted">
-            <i class="bi bi-calendar"></i> @record.RecordDate.ToString("dd.MM.yyyy") |
-            <span class="badge bg-secondary">@record.Category.Name</span>
-        </p>
-    </div>
-</div>
-
-@if (!string.IsNullOrEmpty(record.Comment))
-{
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0"><i class="bi bi-chat-left-text"></i> Комментарий</h5>
-        </div>
-        <div class="card-body">
-            <p class="mb-0">@record.Comment</p>
-        </div>
-    </div>
-}
-
-@if (results != null && results.Any())
-{
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0"><i class="bi bi-clipboard-data"></i> Результаты анализа</h5>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-bordered">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Параметр</th>
-                            <th>Норма</th>
-                            <th>Ед. изм.</th>
-                            <th>Ваш результат</th>
-                            <th>Статус</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var result in results)
-                        {
-                            <tr class="@(result.IsOutOfRange ? "table-danger" : (result.IsNearOutOfRange ? "table-warning" : "table-success"))">
-                                <td>@result.ParameterName</td>
-                                <td>@result.NormMin – @result.NormMax</td>
-                                <td>@result.Unit</td>
-                                <td><strong>@result.Value</strong></td>
-                                <td>
-                                    @if (result.IsOutOfRange)
-                                    {
-                                        <span class="badge bg-danger">Вне нормы</span>
-                                    }
-                                    else if (result.IsNearOutOfRange)
-                                    {
-                                        <span class="badge bg-warning text-dark">Пограничное</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-success">Норма</span>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-}
-
-@if (!string.IsNullOrEmpty(record.FilePath))
-{
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0"><i class="bi bi-paperclip"></i> Прикрепленный файл</h5>
-        </div>
-        <div class="card-body">
-            <a href="/@record.FilePath" target="_blank" class="btn btn-outline-primary">
-                <i class="bi bi-download"></i> Скачать файл
-            </a>
-        </div>
-    </div>
-}
-
-<div class="d-flex gap-2">
-    <a asp-action="Index" class="btn btn-secondary">
-        <i class="bi bi-arrow-left"></i> Назад к списку
-    </a>
-    <a asp-action="Delete" asp-route-id="@record.Id" class="btn btn-danger">
-        <i class="bi bi-trash"></i> Удалить запись
-    </a>
-</div>
+@model RecordDetailsViewModel
+@{ ViewData["Title"]=Model.Record.Title; }
+<div class="d-flex justify-content-between flex-wrap gap-3 mb-4"><div><h1 class="h3">@Model.Record.Title</h1><p class="text-muted mb-0">@Model.Record.RecordDate.ToString("dd.MM.yyyy") · <a asp-controller="CategoryRecords" asp-action="Details" asp-route-id="@Model.Record.CategoryId">@Model.Record.Category.Name</a></p></div><a asp-action="Edit" asp-route-id="@Model.Record.Id" class="btn btn-primary align-self-start">Редактировать</a></div>
+@if(!string.IsNullOrWhiteSpace(Model.Record.Comment)){<div class="card mb-4"><div class="card-body"><h2 class="h5">Комментарий</h2><p class="mb-0 preserve-lines">@Model.Record.Comment</p></div></div>}
+@if(Model.Results.Count>0){
+<div class="card mb-4"><div class="card-header d-flex justify-content-between flex-wrap gap-2"><strong>Результаты анализа</strong><a asp-controller="Norms" asp-action="Index" asp-route-categoryId="@Model.Record.CategoryId">Настроить мои интервалы</a></div><div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Показатель</th><th>Результат</th><th>Единица</th><th>Интервал</th><th>Статус</th></tr></thead><tbody>
+@foreach(var result in Model.Results){<tr class="table-@result.CssClass"><td><a asp-controller="Analytics" asp-action="Index" asp-route-categoryId="@result.CategoryId" asp-route-parameterId="@result.ParameterId">@result.ParameterName</a></td><td><strong>@result.Value.ToString("0.####")</strong></td><td>@result.Unit</td><td>@result.NormMin.ToString("0.####") – @result.NormMax.ToString("0.####") @(result.IsCustomNorm?"(мой)":"")</td><td>@result.StatusText</td></tr>}
+</tbody></table></div></div><p class="small text-muted">Статус отражает сравнение с заданным интервалом и не является диагнозом.</p>
+}else if(Model.Record.Category.IsLabTest){<p class="text-muted">Числовые результаты не заполнены. Их можно добавить при редактировании.</p>}
+@if(Model.Record.FilePath!=null){<div class="card mb-4"><div class="card-body"><h2 class="h5">Прикрепленный документ</h2><a asp-action="Download" asp-route-id="@Model.Record.Id" class="btn btn-outline-primary">Скачать вложение</a></div></div>}
+<div class="d-flex flex-wrap gap-2"><a asp-action="Index" class="btn btn-outline-secondary">К списку записей</a><a asp-controller="CategoryRecords" asp-action="Details" asp-route-id="@Model.Record.CategoryId" class="btn btn-outline-primary">История категории</a><a asp-action="Delete" asp-route-id="@Model.Record.Id" class="btn btn-outline-danger">Удалить запись</a></div>

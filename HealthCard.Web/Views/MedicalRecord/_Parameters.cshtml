@@ -1,0 +1,16 @@
+@model RecordCreateViewModel
+@if (Model.IsLabTest && Model.Parameters.Count > 0)
+{
+<h2 class="h5 mt-4">Результаты анализа</h2>
+<p class="text-muted">Заполните только измеренные показатели. Можно вводить до четырех знаков после запятой.</p>
+<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Показатель</th><th>Интервал</th><th>Единица</th><th>Ваш результат</th></tr></thead><tbody>
+@for (var i=0;i<Model.Parameters.Count;i++) {
+    <tr><td>@Model.Parameters[i].ParameterName</td><td>@Model.Parameters[i].NormMin.ToString("0.####") – @Model.Parameters[i].NormMax.ToString("0.####")</td><td>@Model.Parameters[i].Unit</td><td>
+        <input type="hidden" asp-for="Parameters[i].TestParameterId" />
+        <input asp-for="Parameters[i].Value" type="number" step="0.0001" min="0" max="99999999" class="form-control" aria-label="@Model.Parameters[i].ParameterName" />
+        <span asp-validation-for="Parameters[i].Value" class="text-danger"></span>
+    </td></tr>
+}
+</tbody></table></div>
+}
+else if(Model.IsLabTest) { <p class="text-muted mt-3">В категории пока нет показателей. Добавьте их в редакторе категории.</p> }

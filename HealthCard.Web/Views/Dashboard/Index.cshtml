@@ -1,4 +1,4 @@
-﻿@model HealthCard.Web.ViewModels.DashboardViewModel
+@model HealthCard.Web.ViewModels.DashboardViewModel
 @{
     ViewData["Title"] = "Главная";
 }
@@ -23,7 +23,7 @@
     <div class="col-md-4">
         <div class="card text-white bg-success shadow-sm">
             <div class="card-body">
-                <h5 class="card-title">Доступно анализов</h5>
+                <h5 class="card-title">Доступно категорий</h5>
                 <p class="card-text display-6">@Model.Categories.Count</p>
             </div>
         </div>
@@ -31,13 +31,14 @@
     <div class="col-md-4">
         <div class="card text-white bg-info shadow-sm">
             <div class="card-body">
-                <h5 class="card-title">Статус</h5>
-                <p class="card-text fs-4">Система активна</p>
+                <h5 class="card-title">Измерений вне интервала</h5>
+                <p class="card-text display-6">@Model.OutOfRangeCount</p><a class="text-white" asp-controller="Analytics" asp-action="Index">Открыть аналитику</a>
             </div>
         </div>
     </div>
 </div>
 
+<div class="d-flex flex-wrap gap-2 mb-4"><a asp-controller="Category" asp-action="Create" class="btn btn-outline-primary">Создать свою категорию</a><a asp-controller="Norms" asp-action="Index" class="btn btn-outline-secondary">Настроить персональные нормы</a></div>
 <!-- Категории -->
 <div class="row mb-4">
     <div class="col-12">

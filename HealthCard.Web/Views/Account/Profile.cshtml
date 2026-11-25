@@ -1,0 +1,9 @@
+@model ProfileViewModel
+@{ViewData["Title"]="Мой профиль";}
+<div class="max-form mx-auto"><h1 class="h3 mb-4">Мой профиль</h1><form method="post" class="card card-body p-4"><div asp-validation-summary="All" class="text-danger"></div>
+<div class="mb-3"><label asp-for="Email" class="form-label">Email для входа</label><input asp-for="Email" class="form-control" readonly /></div>
+<div class="mb-3"><label asp-for="FullName" class="form-label">ФИО</label><input asp-for="FullName" class="form-control" /><span asp-validation-for="FullName" class="text-danger"></span></div>
+<div class="row g-3"><div class="col-md-6"><label asp-for="DateOfBirth" class="form-label">Дата рождения</label><input asp-for="DateOfBirth" type="date" class="form-control" max="@DateTime.Today.ToString("yyyy-MM-dd")" /></div><div class="col-md-6"><label asp-for="Gender" class="form-label">Пол</label><select asp-for="Gender" class="form-select"><option value="">Не указан</option><option value="0">Не выбран</option><option value="1">Мужской</option><option value="2">Женский</option></select></div>
+<div class="col-md-6"><label asp-for="BloodType" class="form-label">Группа крови</label><select asp-for="BloodType" class="form-select"><option value="">Не указана</option>@foreach(var type in new[]{"O(I)+","O(I)-","A(II)+","A(II)-","B(III)+","B(III)-","AB(IV)+","AB(IV)-"}){<option value="@type">@type</option>}</select></div></div>
+<div class="d-flex flex-wrap justify-content-end gap-2 mt-4"><a asp-action="ChangePassword" class="btn btn-outline-secondary me-auto">Изменить пароль</a><a asp-controller="Dashboard" asp-action="Index" class="btn btn-outline-secondary">На главную</a><button class="btn btn-primary" type="submit">Сохранить профиль</button></div>
+</form><a asp-controller="Norms" asp-action="Index" class="btn btn-outline-primary mt-3">Настроить персональные нормы анализов</a></div>

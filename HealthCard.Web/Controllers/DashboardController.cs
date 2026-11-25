@@ -1,79 +1,38 @@
-﻿using Data;
-using Models.UserSettings;
-using Services.Interfaces;
+using Data;
+using HealthCard.Web.Infrastructure;
+using HealthCard.Web.Services;
 using HealthCard.Web.ViewModels;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
-
+using Models.ParameterBase;
 namespace HealthCard.Web.Controllers;
 
-[Authorize] // Требует авторизации
-public class DashboardController : Controller
+public class DashboardController(ApplicationDbContext db, RecordQueryService queries) : UserController(db)
 {
-    private readonly ICategoryService _categoryService;
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly ApplicationDbContext _context;
-
-    public DashboardController(
-        ICategoryService categoryService,
-        UserManager<ApplicationUser> userManager,
-        ApplicationDbContext context)
-    {
-        _categoryService = categoryService;
-        _userManager = userManager;
-        _context = context;
-    }
-
+    [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var userId = _userManager.GetUserId(User);
-        var user = await _userManager.FindByIdAsync(userId);
-
-        var categories = (await _categoryService.GetCategoriesAsync()).ToList();
-
-        var recentRecords = await _context.MedicalRecords
-            .Include(mr => mr.Category)
-            .Where(mr => mr.UserId == userId)
-            .OrderByDescending(mr => mr.RecordDate)
-            .Take(5)
-            .ToListAsync();
-
-        //Статистика по категориям
-        var categoryStats = new List<CategoryStatisticsViewModel>();
-        foreach (var category in categories)
+        var categories = await queries.Categories(UserId).OrderBy(c => c.SortOrder).ToListAsync();
+        var stats = await Db.MedicalRecords.Where(r => r.UserId == UserId).GroupBy(r => r.CategoryId)
+            .Select(g => new { Id = g.Key, Count = g.Count(), Date = g.Max(r => r.RecordDate) }).ToDictionaryAsync(g => g.Id);
+        var user = await Db.Users.AsNoTracking().FirstAsync(u => u.Id == UserId);
+        return View(new DashboardViewModel
         {
-            var recordsCount = await _context.MedicalRecords
-                .CountAsync(mr => mr.UserId == userId && mr.CategoryId == category.Id);
-
-            var lastRecord = await _context.MedicalRecords
-                .Where(mr => mr.UserId == userId && mr.CategoryId == category.Id)
-                .OrderByDescending(mr => mr.RecordDate)
-                .FirstOrDefaultAsync();
-
-            categoryStats.Add(new CategoryStatisticsViewModel
-            {
-                CategoryId = category.Id,
-                CategoryName = category.Name,
-                Description = category.Description,
-                IsLabTest = category.IsLabTest,
-                IconClass = category.IconClass,
-                RecordsCount = recordsCount,
-                LastRecordDate = lastRecord?.RecordDate
-            });
-        }
-
-        var model = new DashboardViewModel
-        {
-            UserName = user?.FullName ?? "Пользователь",
-            TotalRecordsCount = await _context.MedicalRecords.CountAsync(mr => mr.UserId == userId),
-            RecentRecords = recentRecords,
+            UserName = user.FullName,
+            TotalRecordsCount = stats.Values.Sum(s => s.Count),
             Categories = categories,
-            CategoryStatistics = categoryStats
-        };
-
-        return View(model);
+            OutOfRangeCount = (await queries.ResultsAsync(UserId)).Count(r => r.Status == ResultStatus.OutOfRange),
+            RecentRecords = await Db.MedicalRecords.AsNoTracking().Include(r => r.Category).Where(r => r.UserId == UserId).OrderByDescending(r => r.RecordDate).ThenByDescending(r => r.Id).Take(5).ToListAsync(),
+            CategoryStatistics = categories.Select(c => new CategoryStatisticsViewModel
+            {
+                CategoryId = c.Id,
+                CategoryName = c.Name,
+                Description = c.Description,
+                IconClass = c.IconClass,
+                IsLabTest = c.IsLabTest,
+                RecordsCount = stats.TryGetValue(c.Id, out var s) ? s.Count : 0,
+                LastRecordDate = stats.TryGetValue(c.Id, out var t) ? t.Date : null
+            }).ToList()
+        });
     }
 }
