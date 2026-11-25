@@ -41,7 +41,7 @@ public class DashboardController : Controller
             .Take(5)
             .ToListAsync();
 
-        // НОВОЕ: Статистика по категориям
+        //Статистика по категориям
         var categoryStats = new List<CategoryStatisticsViewModel>();
         foreach (var category in categories)
         {

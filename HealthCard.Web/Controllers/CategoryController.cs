@@ -24,12 +24,12 @@ public class CategoryController : Controller
         _userManager = userManager;
     }
 
-    // GET: /Categories/GroupDetails?type=LabTest или type=Research
+    
     public async Task<IActionResult> GroupDetails(string? type)
     {
         var userId = _userManager.GetUserId(User);
 
-        // ✅ ИСПРАВЛЕНИЕ CS8604: проверяем userId на null
+        //  проверяем userId на null
         if (userId == null)
         {
             return RedirectToAction("Login", "Account");
@@ -54,7 +54,7 @@ public class CategoryController : Controller
             title = "Все категории";
         }
 
-        // ✅ ИСПРАВЛЕНИЕ CS0266: сначала все Where, потом OrderBy в конце
+        //сначала все Where, потом OrderBy в конце
         IQueryable<Category> categoriesQuery = _context.Categories
             .Where(c => c.IsSystem);
 

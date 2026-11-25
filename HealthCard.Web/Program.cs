@@ -41,7 +41,7 @@ namespace HealthCard.Web
 
             // 4. РЕГИСТРАЦИЯ НАШИХ СЕРВИСОВ
             builder.Services.AddScoped<ICategoryService, CategoryService>();
-            // Позже добавим сюда: builder.Services.AddScoped<IMedicalRecordService, MedicalRecordService>();
+            
             // Регистрация сервисов
             builder.Services.AddScoped<ICategoryService, CategoryService>();
             builder.Services.AddScoped<IFileStorageService, FileStorageService>();
